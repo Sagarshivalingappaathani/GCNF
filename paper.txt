@@ -1,0 +1,569 @@
+2022 IEEE International Conference on Big Data and Smart Computing (BigComp)
+
+2022 IEEE International Conference on Big Data and Smart Computing (BigComp) | 978-1-6654-2197-3/22/$31.00 ©2022 IEEE | DOI: 10.1109/BIGCOMP54360.2022.00065
+
+Collaborative Filtering on Bipartite Graphs using
+Graph Convolutional Networks
+Minkyu Kim
+
+Jinho Kim
+
+Dept. of Big Data and Medical Convergence
+Kangwon National University
+Republic of Korea
+minkyu.kim@kangwon.ac.kr
+
+Dept. of Computer Science and Engineering
+Kangwon National University
+Republic of Korea
+jhkim@kangwon.ac.kr
+
+Abstract—Existing graph neural networks are not suitable to
+handle bipartite graphs, and existing graph-based collaborative
+ﬁltering methods cannot model user-item interactions. To overcome these problems, we propose a novel collaborative ﬁltering
+method named Graph Convolutional Collaborative Filtering
+(GCCF). Our GCCF aggregates neighbor nodes information
+with a novel Graph Convolutional Network (GCN) style node
+aggregation function improved for bipartite graphs. In addition,
+GCCF models user-item interactions using the user-item crossing
+layer. We conduct experiments to compare our GCCF with the
+existing state-of-the-art methods. Experimental results show that
+GCCF achieved or matched state-of-the-art results over ﬁve
+collaborative ﬁltering datasets without any side information.
+Index Terms—Recommender Systems, Collaborative Filtering,
+Graph Neural Networks, Graph Convolutional Networks, Bipartite Graphs
+
+
+
+
+
+
+
+
+
+I. I NTRODUCTION
+Graph neural networks have succeeded in many research
+ﬁelds such as natural language processing, computer vision,
+and recommendation. Thanks to this success, many graph
+neural network-based collaborative ﬁltering methods have
+been proposed recently. Collaborative ﬁltering datasets can
+be represented as bipartite graphs. The adjacency matrix of a
+bipartite graph is asymmetric because the row and column of
+the adjacency matrix indicate different features (e.g., users and
+items). Therefore, despite node self-connections playing an
+important role in graph neural networks, we cannot represent
+self-connections in a bipartite graph. Due to this problem,
+Graph Convolutional Networks (GCNs) [1], and other graph
+neural networks are not suitable to handle bipartite graphs.
+Fig.1 shows node aggregation on a bipartite graph. Nodes
+of a bipartite graph can be divided into two disjoint sets.
+In addition, most existing graph-based collaborative ﬁltering
+methods mainly focused on improving node aggregation function. They did not cover how to model user-item interactions.
+For example, Inductive Graph Matrix Completion (IGMC) [2]
+is a state-of-the-art collaborative ﬁltering method. It aggregates
+neighbor nodes’ information with the complicated function.
+However, the ﬁnal output layer is a linear regressor. A linear
+regressor cannot model second-order interactions. Therefore,
+IGMC also cannot model user-item interactions.
+To overcome these problems, we propose a novel graphbased collaborative ﬁltering method named Graph Convolu-
+
+2375-9356/22/$31.00 ©2022 IEEE
+DOI 10.1109/BigComp54360.2022.00065
+
+Fig. 1. Node Aggregation on a Bipartite Graph
+
+tional Collaborative Filtering (GCCF). Our GCCF aggregates
+neighbor nodes’ information with a novel GCN style aggregation function improved for bipartite graphs. In addition, the ﬁnal output layer of GCCF is the user-item crossing layer which
+can model user-item interactions. We conduct experiments to
+compare the proposed GCCF with the existing state-of-the-art
+methods. Experimental results show that GCCF achieved or
+matched state-of-the-art results over ﬁve collaborative ﬁltering
+datasets without any side information (i.e., extra features). The
+source code of GCCF is publicly available1 .
+The major contributions of this paper are as follows:
+We propose a novel graph-based collaborative ﬁltering
+method named Graph Convolutional Collaborative Filtering (GCCF).
+• Our GCCF aggregates neighbor nodes’ information with
+a novel GCN style aggregation function improved for
+bipartite graphs and models user-item interactions using
+the user-item crossing layer.
+• We demonstrate that GCCF achieved or matched stateof-the-art results over ﬁve datasets.
+•
+
+1 https://github.com/gim4855744/GCCF
+
+304
+
+Authorized licensed use limited to: NATIONAL INSTITUTE OF TECHNOLOGY SURATHKAL. Downloaded on September 23,2025 at 13:41:12 UTC from IEEE Xplore. Restrictions apply.
+
+Graph Convolutional Networks (GCNs) [1], and other graph
+neural networks are not suitable to handle bipartite graphs.
+In addition, existing graph-based collaborative ﬁltering methods mainly focused on improving node aggregation function.
+They did not cover how to model user-item interactions. To
+overcome these problems, we propose a novel graph-based
+collaborative ﬁltering method named Graph Convolutional
+Collaborative Filtering (GCCF). Our GCCF represents selfconnections on a bipartite graph using residual connections
+and model user-item interactions using the user-item crossing
+layer.
+First, we introduce the GCN-style node aggregation function
+on a bipartite graph. The aggregation function is deﬁned as
+follows:
+
+ 
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+Fig. 2. Node Aggregation of a GCCF Layer
+
+U(l) = σ(Âuser I(l−1) W(l)
+user )
+
+(1)
+
+(l)
+Witem )
+
+(2)
+
+(l)
+
+I
+II. R ELATED W ORKS
+
+(l−1)
+
+= σ(Âitem U
+
+M ×N
+
+N ×M
+
+and Âitem ∈ R
+are the norwhere Âuser ∈ R
+malized adjacency matrices of users and items respectively,
+N and M are the numbers of users and items respectively,
+U(l) ∈ RM ×F and I(l) ∈ RN ×F are the embedding matrices
+of users and items in the l-th layer respectively, F is the
+(l)
+F ×F
+and Witem ∈ RF ×F are
+embedding size, W(l)
+user ∈ R
+the trainable weight matrices of users and items in the l-th
+layer respectively, and σ(·) is an activation function. Nodes
+of a bipartite graph can be divided into two disjoint sets.
+Therefore, we need two parts for the aggregation function
+(i.e., the user and item aggregation parts). In addition, we
+use normalized adjacency matrices in the aggregation function.
+Our normalized method is deﬁned as follows:
+Auser,i
+(3)
+Âuser,i =
+deg(Auser,i )
+Aitem,j
+Âitem,j =
+(4)
+deg(Aitem,j )
+
+A. Traditional Recommender Systems
+Matrix Factorization (MF) [3]–[5] and Tensor Factorization
+(TF) [6], [7] are the most representative collaborative ﬁltering
+methods. They decompose a matrix/tensor into several smaller
+matrices/tensors. The multiplication of the smaller matrices/tensors converges on the original matrix/tensor. SVD++
+[8] is a matrix factorization method. It can consider users’
+and items’ implicit feedbacks. timeSVD++ [9] is an extension
+of SVD++ to handle time series data. Factorization Machines
+(FMs) [10] are a latent factor method. FMs represent features
+as corresponding latent vectors.
+B. Deep Learning based Recommender Systems
+Recently, deep learning-based recommender systems are
+being actively studied. A collaborative ﬁltering method using
+an auto-encoder has been proposed [11]. A deep learningbased matrix factorization method has been proposed [12]. To
+increase performance by using rich feature interactions, various methods combining several different methods have been
+proposed [13]–[16]. These combinatorial methods outperforms
+existing non-combinatorial deep learning-based methods.
+
+where Auser and Aitem are the raw adjacency matrices of users and items respectively, and deg(Auser,i ) and
+deg(Aitem,j ) are the degree of user i and item j respectively.
+T
+Note that Auser is ATitem , but Âuser is not Âitem . One problem
+of the node aggregation function deﬁned above is that it cannot
+represent self-connections. To overcome this problem, we propose a novel GCN-style node aggregation function for bipartite
+graphs. The proposed function mimics self-connections using
+weighted residual connections. Our aggregation function (i.e.
+a GCCF layer) is deﬁned as follows:
+
+C. Graph-based Recommender Systems
+To handle graph-structured data, various graph-based recommender systems have been proposed. A graph-based
+method for social recommendations has been proposed [17].
+Graph Convolutional Matrix Completion (GCMC) [18] is a
+matrix completion method using the graph auto-encoder. Inductive Graph Matrix Completion (IGMC) [2] is a graph-based
+matrix completion method. Various graph-based collaborative
+ﬁltering methods have been proposed [19], [20].
+
+(l−1)
+W(l)
+U(l) = σ(Âuser I(l−1) W(l)
+user + U
+user )
+
+(5)
+
+(l)
+(l)
+Witem + I(l−1) Witem )
+
+(6)
+
+(l)
+
+I
+
+(l−1)
+
+= σ(Âitem U
+
+The embedding matrices U and I are self-connected to generate the next layer’s embedding matrices. Fig.2 shows the
+architecture of a GCCF layer. Dotted arrows indicate the
+residual connections.
+Finally, we introduce the user-item crossing layer to generate the ﬁnal output value. Most graph-based collaborative
+ﬁltering methods use a linear regressor as the ﬁnal output
+
+III. P ROPOSED M ETHOD
+Many collaborative ﬁltering datasets can be represented as
+bipartite graphs. The adjacency matrix of a bipartite graph is
+asymmetric because the row and column of the adjacency matrix indicate different features. Therefore, we cannot represent
+self-connections in the adjacency matrix. Due to this problem,
+
+305
+Authorized licensed use limited to: NATIONAL INSTITUTE OF TECHNOLOGY SURATHKAL. Downloaded on September 23,2025 at 13:41:12 UTC from IEEE Xplore. Restrictions apply.
+
+
+
+   
+ 
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+Fig. 3. The Architecture of Graph Convolutional Collaborative Filtering
+
+Algorithm 1 Forward Propagation of GCCF
+
+layer. However, a linear regressor cannot model second-order
+interactions (e.g., user-item interactions). To overcome this
+problem, we propose the user-item crossing layer to model
+user-item interactions. The user-item crossing layer is deﬁned
+as follows:
+L
+
+H =  (U(l)
+u  Ii )
+
+(7)
+
+ŷ = HW(out)
+
+(8)
+
+(l)
+
+1: % Normalizing Adjacency Matrices
+2: Âuser ← Auser /sum(Auser , axis=1)
+3: Âitem ← Aitem /sum(Aitem , axis=1)
+4: % Node Aggregation
+5: for l ← 1 to L do
+
+l=0
+
+6:
+
+(l−1)
+U(l) ← σ(Âuser I(l−1) W(l)
+W(l)
+user + U
+user )
+(l)
+
+(l)
+
+I(l) ← σ(Âitem U(l−1) Witem + I(l−1) Witem )
+8: end for
+
+where  is the concatenation operator, L is the number of
+layers,  is the Hadamard product (i.e. element-wise product),
+u and i are the IDs of users and items respectively, and W(out)
+is the trainable output matrix. The Hadamard product is a
+second-order operation. Therefore, we can model user-item
+interaction using this operation. In addition, we concatenate
+all layers for prediction. W(out) distills useful information
+from modeled user-item interactions. Fig.3 shows the overall
+architecture of our GCCF. Algorithm 1 is the pseudocode of
+forward propagation of GCCF.
+
+7:
+
+9: % User-Item Interaction
+10: H ← []
+11: for l ← 0 to L do
+
+% embedding lookup and element-wise product
+H.append(U(l) [u]  I(l) [i])
+14: end for
+12:
+13:
+
+IV. E XPERIMENTS
+
+15: % Prediction
+
+A. Datasets
+
+16: H ← concat(H, axis=1)
+(out)
+
+17: ŷ ← HW
+
+TABLE I
+S TATISTICS OF DATASETS
+Dataset
+ML-100K
+ML-1M
+Flixster
+Douban
+YahooMusic
+
+# Ratings
+100,000
+1,000,209
+26,173
+136,891
+5,335
+
+# Users
+943
+6,040
+3,000
+3,000
+3,000
+
+# Items
+1,682
+3,706
+3,000
+3,000
+3,000
+
+18: return
+Rating Type
+1, 2, ..., 5
+1, 2, ..., 5
+0.5, 1, ..., 5
+1, 2, ..., 5
+1, 2, ..., 100
+
+ŷ
+
+some side-information such as age, sex, or genre. We randomly
+split 90%/10% training/test sets for the ML-1M dataset. We
+use preprocessed training/test sets provided by [21] for other
+remaining datasets. TABLE I shows the statistical values of
+these experimental datasets in detail.
+
+We evaluate various methods using ﬁve collaborative ﬁltering datasets: ML-100k, ML-1M, Flixster, Douban, and YahooMusic. These datasets contain (user, item, rating) pairs and
+
+306
+Authorized licensed use limited to: NATIONAL INSTITUTE OF TECHNOLOGY SURATHKAL. Downloaded on September 23,2025 at 13:41:12 UTC from IEEE Xplore. Restrictions apply.
+
+R EFERENCES
+
+B. Experimental Setup
+We implement our GCCF using PyTorch library. We use
+Adam optimizer to optimize the trainable parameters of a
+GCCF model. We train the GCCF model over 1000 epochs.
+Using the greedy search algorithm, we optimize the hyperparameters of the GCCF model, such as learning rate, weight
+decay, and dropout rate. Detailed hyper-parameters settings
+are provided with the source code. The loss function is Mean
+Squared Error (MSE). Root Mean Squared Error (RMSE) is
+used for the evaluation metric.
+
+[1] T. N. Kipf and M. Welling, “Semi-Supervised Classiﬁcation with Graph
+Convolutional Networks,” in International Conference on Learning
+Representations (ICLR), 2017.
+[2] M. Zhang and Y. Chen, “Inductive Matrix Completion Based on Graph
+Neural Network,” in International Conference on Learning Representations (ICLR), 2020.
+[3] P. Paatero and U. Tapper, “Positive Matrix Factorization: A Non-negative
+Factor Model with Optimal Utilization of Error Estimates of Data
+Values,” Environmetrics, vol. 5, no. 2, pp. 111–126, 1994.
+[4] D. D. Lee and H. S. Seung, “Learning the Parts of Objects by NonNegative Matrix Factorization,” Nature, vol. 401, no. 6755, pp. 788–791,
+1999.
+[5] Y. Koren, R. Bell, and C. Volinsky, “Matrix Factorization Techniques
+for Recommender Systems,” Computer, vol. 42, no. 8, pp. 30–37, 2009.
+[6] M. Welling and M. Weber, “Positive Tensor Factorization,” Pattern
+Recognition Letters, vol. 22, no. 12, pp. 1255–1261, 2001.
+[7] A. Shashua and T. Hazan, “Non-Negative Tensor Factorization with
+Applications to Statistics and Computer Vision,” in Proceedings of the
+22nd International Conference on Machine Learning, 2005, pp. 792–
+799.
+[8] Y. Koren, “Factorization Meets the Neighborhood: A Multifaceted Collaborative Filtering Model,” in Proceedings of the 14th ACM SIGKDD
+International Conference on Knowledge Discovery and Data Mining,
+2008.
+[9] ——, “Collaborative Filtering with Temporal Dynamics,” in Proceedings
+of the 15th ACM SIGKDD International Conference on Knowledge
+Discovery and Data Mining, 2009.
+[10] S. Rendle, “Factorization Machines,” in 2010 IEEE International Conference on Data Mining, 2010.
+[11] Y. Wu, C. DuBois, A. X. Zheng, and M. Ester, “Collaborative Denoising
+Auto-Encoders for Top-N Recommender Systems,” in Proceedings of the
+Ninth ACM International Conference on Web Search and Data Mining,
+2016.
+[12] H.-J. Xue, X. Dai, J. Zhang, S. Huang, and J. Chen, “Deep Matrix
+Factorization Models for Recommender Systems,” in Proceedings of the
+Twenty-Sixth International Joint Conference on Artiﬁcial Intelligence,
+IJCAI-17, 2017.
+[13] H.-T. Cheng, L. Koc, J. Harmsen, T. Shaked, T. Chandra, H. Aradhye,
+G. Anderson, G. Corrado, W. Chai, M. Ispir, R. Anil, Z. Haque, L. Hong,
+V. Jain, X. Liu, and H. Shah, “Wide & Deep Learning for Recommender
+Systems,” in Proceedings of the 1st Workshop on Deep Learning for
+Recommender Systems, 2016.
+[14] R. Wang, B. Fu, G. Fu, and M. Wang, “Deep & Cross Network for Ad
+Click Predictions,” in Proceedings of the ADKDD’17, 2017.
+[15] H. Guo, R. Tang, Y. Ye, Z. Li, and X. He, “DeepFM: A FactorizationMachine Based Neural Network for CTR Prediction,” in Proceedings of
+the 26th International Joint Conference on Artiﬁcial Intelligence, 2017.
+[16] J. Lian, X. Zhou, F. Zhang, Z. Chen, X. Xie, and G. Sun, “xDeepFM:
+Combining Explicit and Implicit Feature Interactions for Recommender
+Systems,” in Proceedings of the 24th ACM SIGKDD International
+Conference on Knowledge Discovery & Data Mining, 2018.
+[17] W. Fan, Y. Ma, Q. Li, Y. He, E. Zhao, J. Tang, and D. Yin, “Graph
+Neural Networks for Social Recommendation,” in The World Wide Web
+Conference, 2019.
+[18] R. v. d. Berg, T. N. Kipf, and M. Welling, “Graph Convolutional Matrix
+Completion,” in KDD’18 Deep Learning Day, 2018.
+[19] X. Wang, X. He, M. Wang, F. Feng, and T.-S. Chua, “Neural Graph
+Collaborative Filtering,” in Proceedings of the 42nd international ACM
+SIGIR conference on Research and development in Information Retrieval, 2019.
+[20] X. He, K. Deng, X. Wang, Y. Li, Y. Zhang, and M. Wang, “LightGCN:
+Simplifying and Powering Graph Convolution Network for Recommendation,” in Proceedings of the 43rd International ACM SIGIR conference
+on research and development in Information Retrieval, 2020.
+[21] F. Monti, M. Bronstein, and X. Bresson, “Geometric Matrix Completion
+with Recurrent Multi-Graph Neural Networks,” in Advances in Neural
+Information Processing Systems, 2017.
+
+C. Evaluation
+TABLE II
+P ERFORMANCE C OMPARISONS
+Model
+GCMC
+IGMC
+GCCF
+
+ML-100K
+0.905
+0.905
+0.911
+
+ML-1M
+0.832
+0.857
+0.846
+
+Flixster
+0.917
+0.872
+0.938
+
+Douban
+0.734
+0.721
+0.729
+
+YahooMusic
+20.5
+19.1
+18.7
+
+We compare our GCCF with two state-of-the-art graphbased collaborative ﬁltering methods, Graph Convolutional
+Matrix Completion (GCMC) [18] and Inductive Graph Matrix
+Completion (IGMC) [2]. TABLE II shows the RMSEs of
+GCMC, IGMC, and GCCF on ﬁve datasets. GCMC shows the
+highest performances in the ML-100K and ML-1M. IGMC
+shows the highest performances in the ML-100K, Flixster,
+and Douban. However, GCMC needs side information for
+high-performance, and IGMC needs the complicated subgraph sampling method and node aggregation function. Our
+GCCF almost matched state-of-the-art results without any
+side information and additional sub-sampling method. In addition, GCCF achieved the new state-of-the-art result in the
+YahooMusic.
+V. C ONCLUSION
+Existing graph neural networks are not suitable for bipartite
+graphs, and existing graph-based collaborative ﬁltering methods can not model user-item interactions. Therefore, this paper
+proposed a novel graph-based collaborative ﬁltering method
+named Graph Convolutional Collaborative Filtering (GCCF)
+to overcome these problems. Our GCCF aggregates neighbor
+nodes with a novel Graph Convolutional Network (GCN) [1]
+style aggregation function improved for bipartite graphs. In
+addition, the ﬁnal output layer of GCCF is the user-item
+crossing layer. This layer can model second-order interactions
+like user-item interactions. We compared the proposed GCCF
+with two state-of-the-art methods on ﬁve collaborative ﬁltering
+datasets. Experimental results demonstrated that our GCCF
+achieved or matched state-of-the-art results without any side
+information and additional sub-sampling method.
+ACKOWLEDGEMENT
+This work was supported by the National Research Foundation of Korea(NRF) grant funded by the Korea government(MSIT) (No. 2021R1F1A1059255).
+
+307
+Authorized licensed use limited to: NATIONAL INSTITUTE OF TECHNOLOGY SURATHKAL. Downloaded on September 23,2025 at 13:41:12 UTC from IEEE Xplore. Restrictions apply.
+
+
