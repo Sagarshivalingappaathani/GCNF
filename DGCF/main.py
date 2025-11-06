@@ -24,7 +24,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('data_name', '', 'dataset name')
 flags.DEFINE_string('root_dir', '', 'dataset directory path')
 flags.DEFINE_integer('window_days', 30, 'snapshot window size in days')
-flags.DEFINE_integer('epochs', 100, 'training epochs')
+flags.DEFINE_integer('epochs', 50, 'training epochs')
 
 
 def main(argv):
@@ -122,6 +122,63 @@ def main(argv):
         print(f"RMSE:      {final_rmse.item():.6f}")
         print("=================================\n")
 
+        # ----- Ranking evaluation: Recall@K -----
+        # Build train and test interaction maps per user
+        train_user_list = train_user.cpu().numpy()
+        train_item_list = train_movie.cpu().numpy()
+        test_user_list = test_user.cpu().numpy()
+        test_item_list = test_movie.cpu().numpy()
+
+        from collections import defaultdict
+
+        train_by_user = defaultdict(set)
+        for u, i in zip(train_user_list, train_item_list):
+            train_by_user[int(u)].add(int(i))
+
+        test_by_user = defaultdict(set)
+        for u, i in zip(test_user_list, test_item_list):
+            test_by_user[int(u)].add(int(i))
+
+        ks = [5, 10, 20]
+        recall_at_k = {k: [] for k in ks}
+
+        # For each user in the test set, score all items and compute Recall@K
+        all_items = torch.arange(num_movies, device=device, dtype=torch.int64)
+
+        users_to_eval = sorted(test_by_user.keys())
+        for u in users_to_eval:
+            # score all items for user u
+            user_ids = torch.full((num_movies,), u, dtype=torch.int64, device=device)
+            with torch.no_grad():
+                scores, _, _ = model(eval_user_adj, eval_movie_adj, user_ids, all_items)
+
+            scores = scores.cpu().numpy()
+
+            # mask training items so we don't recommend seen items
+            train_items = train_by_user.get(u, set())
+            mask = np.array([False] * num_movies)
+            if train_items:
+                mask[list(train_items)] = True
+            scores[mask] = -np.inf
+
+            # get top-k
+            ranked_items = np.argsort(-scores)
+
+            relevant = test_by_user[u]
+            if len(relevant) == 0:
+                continue
+
+            for k in ks:
+                topk = set(ranked_items[:k])
+                hits = len(topk & relevant)
+                recall = hits / float(len(relevant))
+                recall_at_k[k].append(recall)
+
+        # Report averaged Recall@K
+        for k in ks:
+            vals = recall_at_k[k]
+            mean_recall = float(np.mean(vals)) if len(vals) > 0 else 0.0
+            print(f"Recall@{k}: {mean_recall:.6f}")
 
 if __name__ == '__main__':
     app.run(main)

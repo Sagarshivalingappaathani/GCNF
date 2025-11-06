@@ -78,7 +78,7 @@ class ML1M:
         return values * 5.0
 
     # ---- Snapshot helpers (NEW) ----
-    def get_train_snapshots(self, window_size_days=100):
+    def get_train_snapshots(self, window_size_days=30):
         """
         Returns a list of (user, movie, rating) tensors per time window from TRAIN data.
         """
