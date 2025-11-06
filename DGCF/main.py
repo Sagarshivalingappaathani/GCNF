@@ -81,10 +81,18 @@ def main(argv):
             movie_adj = get_adj(num_movies, num_users, snap_movie, snap_user, device)
 
             optimizer.zero_grad()
-            predict = model(user_adj, movie_adj, snap_user, snap_movie)
+            # Model now returns prediction plus the final propagated
+            # user/movie states for the snapshot so we can persist them.
+            predict, last_user_state, last_movie_state = model(user_adj, movie_adj, snap_user, snap_movie)
             loss = criterion(predict, snap_rating)
             loss.backward()
             optimizer.step()
+
+            # Persist propagated states into model buffers (no grads)
+            with torch.no_grad():
+                # Copy latest propagated full-node states into buffers
+                model.prev_user_state.copy_(last_user_state)
+                model.prev_movie_state.copy_(last_movie_state)
 
             epoch_loss += loss.item()
             snapshot_count += 1
@@ -101,7 +109,7 @@ def main(argv):
         eval_user_adj = get_adj(num_users, num_movies, train_user, train_movie, device)
         eval_movie_adj = get_adj(num_movies, num_users, train_movie, train_user, device)
 
-        test_predict = model(eval_user_adj, eval_movie_adj, test_user, test_movie)
+        test_predict, _, _ = model(eval_user_adj, eval_movie_adj, test_user, test_movie)
 
         test_pred_actual = dataset.inverse_transform(test_predict)
         test_true_actual = dataset.inverse_transform(test_rating)

@@ -30,6 +30,13 @@ class GCCF(Module):
 
         self.reset_parameters()
 
+        # Registered buffers that store the last propagated node states
+        # from the previous snapshot. These are moved with the model and
+        # are not trainable parameters. They are used as a carry-over
+        # prior for the next snapshot's computation.
+        self.register_buffer('prev_user_state', torch.zeros(num_user, emb_size))
+        self.register_buffer('prev_movie_state', torch.zeros(num_movies, emb_size))
+
     def reset_parameters(self):
 
         torch.nn.init.xavier_uniform_(self._user_embedding.weight)
@@ -45,14 +52,19 @@ class GCCF(Module):
         torch.nn.init.zeros_(self._output_layer.bias)
 
     def forward(self, user_adj, movie_adj, user_id, movie_id):
-
         dropout = self._hparams["dropout"]
+
+        # carry_alpha controls how strongly previous snapshot states
+        # influence the current forward pass. default 0.0 (no carry-over).
+        alpha = float(self._hparams.get("carry_alpha", 0.0))
 
         user_embeddings = []
         movie_embeddings = []
 
-        user_embedding = self._user_embedding.weight
-        movie_embedding = self._movie_embedding.weight
+        # Start from the current embedding weights and add a scaled
+        # contribution from the previous propagated states.
+        user_embedding = self._user_embedding.weight + alpha * self.prev_user_state
+        movie_embedding = self._movie_embedding.weight + alpha * self.prev_movie_state
 
         user_embeddings.append(user_embedding)
         movie_embeddings.append(movie_embedding)
@@ -75,4 +87,6 @@ class GCCF(Module):
         user_item_interactions = functional.dropout(user_item_interactions, p=dropout, training=self.training)
         output = self._output_layer(user_item_interactions)
 
-        return output.view(-1)
+        # Return output and the final propagated user/movie states so
+        # the training loop can persist them between snapshots.
+        return output.view(-1), user_embeddings[-1], movie_embeddings[-1]
