@@ -44,6 +44,8 @@ def main(argv):
         raise Exception("Unknown dataset")
 
     data_hparams = hparams[FLAGS.data_name]
+    # Print effective dynamic settings so it's obvious at runtime whether AGate is used
+    print(f"Dataset: {FLAGS.data_name} | use_agate: {bool(data_hparams.get('use_agate', False))} | carry_alpha: {data_hparams.get('carry_alpha', None)}")
 
     train_user, train_movie, _ = dataset.get_train_data()
     test_user, test_movie, test_rating = dataset.get_test_data()
@@ -75,6 +77,7 @@ def main(argv):
 
         epoch_loss = 0.0
         snapshot_count = 0
+        gate_means = []
 
         for (snap_user, snap_movie, snap_rating) in snapshots:
             user_adj = get_adj(num_users, num_movies, snap_user, snap_movie, device)
@@ -91,8 +94,20 @@ def main(argv):
             # Persist propagated states into model buffers (no grads)
             with torch.no_grad():
                 # Copy latest propagated full-node states into buffers
-                model.prev_user_state.copy_(last_user_state)
-                model.prev_movie_state.copy_(last_movie_state)
+                model.prev_user_state.copy_(last_user_state.detach())
+                model.prev_movie_state.copy_(last_movie_state.detach())
+
+            # collect gate statistics if AGate is enabled
+            if getattr(model, '_use_agate', False):
+                try:
+                    u_gate = model._agate_user.last_gate
+                    m_gate = model._agate_movie.last_gate
+                    # mean over nodes and dimensions
+                    mean_gate = float((u_gate.mean() + m_gate.mean()) / 2.0)
+                    gate_means.append(mean_gate)
+                except Exception:
+                    # last_gate may not exist in some code paths
+                    pass
 
             epoch_loss += loss.item()
             snapshot_count += 1
@@ -101,6 +116,10 @@ def main(argv):
 
         avg_loss = epoch_loss / snapshot_count
         print(f"Epoch {epoch+1:04d} | Training Loss: {avg_loss:.6f}")
+
+        # print gate usage statistics
+        if len(gate_means) > 0:
+            print(f"Epoch {epoch+1:04d} | mean AGate activation: {np.mean(gate_means):.4f}")
 
     # ---- Final Evaluation ----
     with torch.no_grad():
