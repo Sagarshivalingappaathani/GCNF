@@ -38,10 +38,10 @@ class GCCF(Module):
         self.register_buffer('prev_user_state', torch.zeros(num_user, emb_size))
         self.register_buffer('prev_movie_state', torch.zeros(num_movies, emb_size))
 
-        # Optional learnable temporal fusion (AGate)
+        
         self._use_agate = bool(self._hparams.get("use_agate", False))
         if self._use_agate:
-            # AGate combines previous state and current embedding per-node
+            # Adaptive fusion combines previous state and current embedding per-node
             # using a learned gate. We'll create two instances for users
             # and movies.
             class AGate(nn.Module):
