@@ -1,7 +1,8 @@
-# Collaborative Filtering on Bipartite Graphs using Graph Convolutional Networks
+# Dynamic Graph Collaborative Filtering on Bipartite Graphs using Graph Convolutional Networks
 
-A PyTorch implementation of Graph Convolutional Collaborative Filtering proposed in our paper:<br>
-*Minkyu Kim and Jinho Kim, Collaborative Filtering on Bipartite Graphs using Graph Convolutional Networks (BigComp 2022)*.
+This work extends the Graph Convolutional Collaborative Filtering (GCCF) framework proposed by Kim and Kim (2022) to include temporal adaptability for evolving recom-
+mendation scenarios. Hence making it a Dynamic Graph Collaborative filtering model
+
 
 
 ## Requirements
@@ -13,18 +14,3 @@ A PyTorch implementation of Graph Convolutional Collaborative Filtering proposed
 * absl
 * h5py
 
-## Usage
-```
-python main.py --data_name=<dataset name> --root_dir=<dataset directory path>
-```
-
-## Citation
-```
-@inproceedings{
-  kim2022collaborative,
-  title={Collaborative Filtering on Bipartite Graphs using Graph Convolutional Networks},
-  author={Kim, Minkyu and Kim, Jinho},
-  booktitle={2022 IEEE International Conference on Big Data and Smart Computing (BigComp)},
-  year={2022}
-}
-```
